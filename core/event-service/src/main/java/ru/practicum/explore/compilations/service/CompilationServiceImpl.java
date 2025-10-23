@@ -79,7 +79,7 @@ public class CompilationServiceImpl implements CompilationService {
     public Collection<CompilationResponse> getAllCompilations(Boolean pinned, Integer from, Integer size) {
         if (from == null) from = 0;
         if (size == null) size = 10;
-        Pageable pageable = PageRequest.of(from / size, size);
+        Pageable pageable = PageRequest.of(from, size);
         if (pinned == null) {
             return compilationRepository.findAll(pageable).getContent()
                     .stream()

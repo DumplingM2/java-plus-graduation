@@ -157,7 +157,12 @@ public final class EventMapper {
     public static Event changeEvent(Event event, PatchEventDto patch) {
         if (patch.getAnnotation() != null)          event.setAnnotation(patch.getAnnotation());
         if (patch.getDescription() != null)         event.setDescription(patch.getDescription());
-        if (patch.getEventDate() != null)           event.setEventDate(patch.getEventDate());
+        if (patch.getEventDate() != null) {
+            if (patch.getEventDate().isBefore(LocalDateTime.now().plusHours(2))) {
+                throw new ru.practicum.exception.BadRequestException("Event date must be at least 2 hours in the future");
+            }
+            event.setEventDate(patch.getEventDate());
+        }
         if (patch.getPaid() != null)                event.setPaid(patch.getPaid());
         if (patch.getParticipantLimit() != null &&
                 patch.getParticipantLimit() >= 0)       event.setParticipantLimit(patch.getParticipantLimit());
@@ -170,7 +175,12 @@ public final class EventMapper {
     public static Event changeEvent(Event event, AdminPatchEventDto patch) {
         if (patch.getAnnotation() != null)          event.setAnnotation(patch.getAnnotation());
         if (patch.getDescription() != null)         event.setDescription(patch.getDescription());
-        if (patch.getEventDate() != null)           event.setEventDate(patch.getEventDate());
+        if (patch.getEventDate() != null) {
+            if (patch.getEventDate().isBefore(LocalDateTime.now().plusHours(1))) {
+                throw new ru.practicum.exception.BadRequestException("Event date must be at least 1 hour in the future");
+            }
+            event.setEventDate(patch.getEventDate());
+        }
         if (patch.getPaid() != null)                event.setPaid(patch.getPaid());
         if (patch.getParticipantLimit() != null &&
                 patch.getParticipantLimit() >= 0)       event.setParticipantLimit(patch.getParticipantLimit());

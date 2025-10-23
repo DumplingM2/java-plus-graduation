@@ -24,8 +24,7 @@ spring:
         format_sql: true
   sql:
     init:
-      mode: always
-      schema-locations: classpath:schema.sql
+      mode: never
 
 hibernate:
   jdbc:

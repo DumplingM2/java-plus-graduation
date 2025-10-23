@@ -21,7 +21,7 @@ public class Event {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     Long id;
 
-    @Column(name = "annotation", nullable = false, length = 2000)
+    @Column(name = "annotation", nullable = false)
     String annotation;
 
     @ManyToOne(fetch = FetchType.EAGER)
@@ -37,7 +37,7 @@ public class Event {
     @Column(name = "paid", nullable = true)
     Boolean paid;
 
-    @Column(name = "title", nullable = true, length = 120)
+    @Column(name = "title", nullable = true)
     String title;
 
     @Transient
@@ -46,7 +46,7 @@ public class Event {
     @Transient
     Long views = 0L;
 
-    @Column(name = "description", nullable = false, length = 7000)
+    @Column(name = "description", nullable = false)
     String description;
 
     @ManyToOne(fetch = FetchType.EAGER)

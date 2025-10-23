@@ -76,7 +76,7 @@ public class EventServiceImpl implements EventService {
     public Collection<ResponseEventDto> getAllUserEvents(long userId, Integer from, Integer size) {
         if (from == null) from = 0;
         if (size == null) size = 10;
-        Pageable pageable = PageRequest.of(from / size, size);
+        Pageable pageable = PageRequest.of(from, size);
         return EventMapper.mapToResponseEventDto(eventRepository.findByInitiatorId(userId, pageable).getContent());
     }
 
@@ -111,7 +111,7 @@ public class EventServiceImpl implements EventService {
     public Collection<ResponseEventDto> findEventsByAdmin(List<Long> users, List<String> states, List<Long> categories, LocalDateTime rangeStart, LocalDateTime rangeEnd, Integer from, Integer size) {
         if (from == null) from = 0;
         if (size == null) size = 10;
-        Pageable pageable = PageRequest.of(from / size, size);
+        Pageable pageable = PageRequest.of(from, size);
         List<Event> result;
         if (users != null && !users.isEmpty() && states != null && !states.isEmpty() && categories != null && !categories.isEmpty()) {
             result = eventRepository.findUsersStatesCategories(users, states, categories, rangeStart, rangeEnd, pageable);
@@ -167,7 +167,7 @@ public class EventServiceImpl implements EventService {
     public Collection<ResponseEventDto> findEventsByUser(String text, List<Long> categories, Boolean paid, LocalDateTime rangeStart, LocalDateTime rangeEnd, Boolean onlyAvailable, String sort, Integer from, Integer size) {
         if (from == null) from = 0;
         if (size == null) size = 10;
-        Pageable pageable = PageRequest.of(from / size, size);
+        Pageable pageable = PageRequest.of(from, size);
         List<Event> base = eventRepository.findByDateRange(rangeStart, rangeEnd, pageable);
         return base.stream()
                 .filter(e -> text == null || (e.getAnnotation() != null && e.getAnnotation().toLowerCase().contains(text.toLowerCase())) || (e.getDescription() != null && e.getDescription().toLowerCase().contains(text.toLowerCase())))
