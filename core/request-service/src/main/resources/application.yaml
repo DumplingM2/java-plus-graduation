@@ -1,0 +1,17 @@
+spring:
+  application:
+    name: request-service
+server:
+  port: 8080
+  config:
+    import: "configserver:http://config-server:8888"
+  cloud:
+    config:
+      discovery:
+        enabled: false
+      fail-fast: false
+
+eureka:
+  client:
+    serviceUrl:
+      defaultZone: http://discovery-server:8761/eureka/

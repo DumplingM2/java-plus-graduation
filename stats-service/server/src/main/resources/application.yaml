@@ -1,12 +1,14 @@
 server:
-  port: 0
+  port: 9090
 
 spring:
+  application:
+    name: stats-server
   datasource:
     driver-class-name: org.postgresql.Driver
-    url: jdbc:postgresql://localhost:5432/stats-db
-    username: postgres
-    password: 12345
+    url: jdbc:postgresql://stats-db:5432/stats-db
+    username: sdb
+    password: password
   jpa:
     properties:
       hibernate:
@@ -33,7 +35,5 @@ logging:
 # Eureka configuration
 eureka:
   client:
-    service-url:
-      defaultZone: http://localhost:8761/eureka/
-  instance:
-    prefer-ip-address: true
+    serviceUrl:
+      defaultZone: http://discovery-server:8761/eureka/

@@ -12,6 +12,11 @@
     <name>Core Services</name>
     <modules>
         <module>main-service</module>
+        <module>event-service</module>
+        <module>request-service</module>
+        <module>user-service</module>
+        <module>comment-service</module>
+        <module>interaction-api</module>
     </modules>
 
     <groupId>ru.practicum</groupId>
