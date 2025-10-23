@@ -32,8 +32,8 @@ logging:
           interceptor: TRACE
           nodeValue: INFO
 
-# Eureka configuration
-eureka:
-  client:
-    serviceUrl:
-      defaultZone: http://discovery-server:8761/eureka/
+# Eureka configuration disabled for stats-server
+# eureka:
+#   client:
+#     serviceUrl:
+#       defaultZone: http://discovery-server:8761/eureka/
