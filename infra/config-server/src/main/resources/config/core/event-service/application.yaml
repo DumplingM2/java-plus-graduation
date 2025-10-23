@@ -1,5 +1,5 @@
 server:
-  port: 8080
+  port: 0
 
 logging:
   level:
@@ -11,11 +11,9 @@ logging:
     org.zalando.logbook: TRACE
 
 spring:
-  application:
-    name: event-service
   datasource:
     driverClassName: org.postgresql.Driver
-    url: jdbc:postgresql://ewm-db:5432/ewm-db
+    url: jdbc:postgresql://localhost:6542/ewm-db
     username: ewm
     password: password
   jpa:
@@ -27,12 +25,6 @@ spring:
   sql:
     init:
       mode: always
-  jackson:
-    mapper:
-      allow-coercion-of-scalars: true
-    serialization:
-      write-dates-as-timestamps: false
-    date-format: yyyy-MM-dd HH:mm:ss
 
 hibernate:
   jdbc:
@@ -42,7 +34,5 @@ logbook:
   format:
     style: http
 
-eureka:
-  client:
-    serviceUrl:
-      defaultZone: http://discovery-server:8761/eureka/
+stats-server:
+  name: stats-server

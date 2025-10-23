@@ -1,5 +1,5 @@
 server:
-  port: 8080
+  port: 0
 
 logging:
   level:
@@ -15,7 +15,7 @@ spring:
     name: user-service
   datasource:
     driverClassName: org.postgresql.Driver
-    url: jdbc:postgresql://ewm-db:5432/ewm-db
+    url: jdbc:postgresql://localhost:6542/ewm-db
     username: ewm
     password: password
   jpa:

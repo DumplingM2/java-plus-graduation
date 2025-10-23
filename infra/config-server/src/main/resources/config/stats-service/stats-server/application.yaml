@@ -1,19 +1,19 @@
 server:
-  port: 9090
+  port: 0
 
 logging:
   level:
-    org.springframework.web: INFO
     org.springframework.orm.jpa: INFO
     org.springframework.transaction: INFO
     org.springframework.transaction.interceptor: INFO
     org.springframework.orm.jpa.JpaTransactionManager: INFO
-    org.zalando.logbook: TRACE
 
 spring:
+  application:
+    name: stats-server
   datasource:
     driverClassName: org.postgresql.Driver
-    url: jdbc:postgresql://stats-db:5432/stats-db
+    url: jdbc:postgresql://localhost:6543/stats-db
     username: sdb
     password: password
   jpa:
@@ -29,13 +29,4 @@ spring:
 hibernate:
   jdbc:
     time_zone: UTC
-
-logbook:
-  format:
-    style: http
-
-eureka:
-  client:
-    serviceUrl:
-      defaultZone: http://discovery-server:8761/eureka/
 

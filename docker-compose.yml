@@ -1,7 +1,4 @@
-version: "3.9"
-
 services:
-  # Databases
   stats-db:
     image: postgres:16.1
     container_name: stats-db
@@ -13,6 +10,11 @@ services:
       - POSTGRES_DB=stats-db
       - POSTGRES_USER=sdb
       - POSTGRES_PASSWORD=password
+    healthcheck:
+      test: pg_isready -q -d $$POSTGRES_DB -U $$POSTGRES_USER
+      timeout: 5s
+      interval: 5s
+      retries: 10
 
   ewm-db:
     image: postgres:16.1
@@ -25,121 +27,8 @@ services:
       - POSTGRES_PASSWORD=password
     volumes:
       - ./volumes/postgres/ewm_data:/var/lib/postgresql/data/
-
-  # Infrastructure Services
-  discovery-server:
-    build: ./infra/discovery-server
-    container_name: discovery-server
-    ports:
-      - "8761:8761"
-
-  config-server:
-    build: ./infra/config-server
-    container_name: config-server
-    depends_on:
-      - discovery-server
-    ports:
-      - "8888:8888"
-
-  gateway-server:
-    build: ./infra/gateway-server
-    container_name: gateway-server
-    depends_on:
-      - discovery-server
-      - config-server
-    ports:
-      - "8080:8080"
-    environment:
-      SPRING_CONFIG_IMPORT: configserver:http://config-server:8888
-      SPRING_CLOUD_CONFIG_DISCOVERY_ENABLED: "false"
-      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discovery-server:8761/eureka/
-      SPRING_CLOUD_CONFIG_URI: http://config-server:8888
-      SPRING_CLOUD_CONFIG_FAIL_FAST: "false"
-
-  # Stats Service
-  stats-server:
-    build: ./stats-service/server
-    container_name: stats-server
-    depends_on:
-      - stats-db
-      - discovery-server
-      - config-server
-    environment:
-      SPRING_DATASOURCE_URL: jdbc:postgresql://stats-db:5432/stats-db
-      SPRING_DATASOURCE_USERNAME: sdb
-      SPRING_DATASOURCE_PASSWORD: password
-    ports:
-      - "9090:9090"
-
-  # Microservices
-  event-service:
-    build: ./core/event-service
-    container_name: event-service
-    depends_on:
-      - ewm-db
-      - discovery-server
-      - config-server
-    environment:
-      SPRING_CONFIG_IMPORT: configserver:http://config-server:8888
-      SPRING_CLOUD_CONFIG_DISCOVERY_ENABLED: "false"
-      SPRING_CLOUD_CONFIG_URI: http://config-server:8888
-      SPRING_CLOUD_CONFIG_FAIL_FAST: "false"
-      SPRING_DATASOURCE_URL: jdbc:postgresql://ewm-db:5432/ewm-db
-      SPRING_DATASOURCE_USERNAME: ewm
-      SPRING_DATASOURCE_PASSWORD: password
-    ports:
-      - "8081:8080"
-
-  request-service:
-    build: ./core/request-service
-    container_name: request-service
-    depends_on:
-      - ewm-db
-      - discovery-server
-      - config-server
-    environment:
-      SPRING_CONFIG_IMPORT: configserver:http://config-server:8888
-      SPRING_CLOUD_CONFIG_DISCOVERY_ENABLED: "false"
-      SPRING_CLOUD_CONFIG_URI: http://config-server:8888
-      SPRING_CLOUD_CONFIG_FAIL_FAST: "false"
-      SPRING_DATASOURCE_URL: jdbc:postgresql://ewm-db:5432/ewm-db
-      SPRING_DATASOURCE_USERNAME: ewm
-      SPRING_DATASOURCE_PASSWORD: password
-    ports:
-      - "8082:8080"
-
-  user-service:
-    build: ./core/user-service
-    container_name: user-service
-    depends_on:
-      - ewm-db
-      - discovery-server
-      - config-server
-    environment:
-      SPRING_CONFIG_IMPORT: configserver:http://config-server:8888
-      SPRING_CLOUD_CONFIG_DISCOVERY_ENABLED: "false"
-      SPRING_CLOUD_CONFIG_URI: http://config-server:8888
-      SPRING_CLOUD_CONFIG_FAIL_FAST: "false"
-      SPRING_DATASOURCE_URL: jdbc:postgresql://ewm-db:5432/ewm-db
-      SPRING_DATASOURCE_USERNAME: ewm
-      SPRING_DATASOURCE_PASSWORD: password
-    ports:
-      - "8083:8080"
-
-  comment-service:
-    build: ./core/comment-service
-    container_name: comment-service
-    depends_on:
-      - ewm-db
-      - discovery-server
-      - config-server
-    environment:
-      SPRING_CONFIG_IMPORT: configserver:http://config-server:8888
-      SPRING_CLOUD_CONFIG_DISCOVERY_ENABLED: "false"
-      SPRING_CLOUD_CONFIG_URI: http://config-server:8888
-      SPRING_CLOUD_CONFIG_FAIL_FAST: "false"
-      SPRING_DATASOURCE_URL: jdbc:postgresql://ewm-db:5432/ewm-db
-      SPRING_DATASOURCE_USERNAME: ewm
-      SPRING_DATASOURCE_PASSWORD: password
-    ports:
-      - "8084:8080"
+    healthcheck:
+      test: pg_isready -q -d $$POSTGRES_DB -U $$POSTGRES_USER
+      timeout: 5s
+      interval: 5s
+      retries: 10
