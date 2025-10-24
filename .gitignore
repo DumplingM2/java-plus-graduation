@@ -20,7 +20,3 @@ target/
 *.iws
 *.iml
 *.ipr
-/.vscode/settings.json
-/ewm-main-service.json
-/ewm-stat-service.json
-/volumes/

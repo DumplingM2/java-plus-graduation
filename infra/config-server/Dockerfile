@@ -1,10 +1,5 @@
-FROM openjdk:21-jdk-slim
-
-WORKDIR /app
-
-COPY target/config-server-*.jar app.jar
-
-EXPOSE 8888
-
-CMD ["java", "-jar", "app.jar"]
-
+FROM eclipse-temurin:21-jre-jammy
+VOLUME /tmp
+ARG JAR_FILE=target/*.jar
+COPY ${JAR_FILE} app.jar
+ENTRYPOINT ["sh", "-c", "java ${JAVA_OPTS} -jar /app.jar"]
