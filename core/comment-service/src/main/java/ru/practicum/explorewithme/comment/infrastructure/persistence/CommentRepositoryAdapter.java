@@ -7,7 +7,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.stereotype.Component;
 import ru.practicum.explorewithme.comment.application.params.AdminCommentSearchParams;
 import ru.practicum.explorewithme.comment.domain.Comment;
@@ -21,7 +20,6 @@ public class CommentRepositoryAdapter implements CommentRepository {
     private final JpaCommentRepository jpaCommentRepository;
 
     @Override
-    @Transactional
     public Comment save(Comment comment) {
         return jpaCommentRepository.saveAndFlush(comment);
     }
