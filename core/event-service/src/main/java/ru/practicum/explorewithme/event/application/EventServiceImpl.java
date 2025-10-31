@@ -35,8 +35,8 @@ import ru.practicum.explorewithme.event.domain.EventRepository;
 import ru.practicum.explorewithme.event.domain.EventState;
 import ru.practicum.explorewithme.event.infrastructure.mapper.EventMapper;
 import ru.practicum.explorewithme.event.infrastructure.mapper.LocationMapper;
-import ru.practicum.explorewithme.stats.client.StatsClient;
-import ru.practicum.explorewithme.stats.dto.ViewStatsDto;
+import ru.practicum.ewm.stats.client.StatsClient;
+import ru.practicum.ewm.stats.dto.ViewStatsDto;
 
 @Service
 @RequiredArgsConstructor

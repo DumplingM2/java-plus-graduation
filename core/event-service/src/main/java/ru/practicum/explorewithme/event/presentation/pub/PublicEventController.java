@@ -19,7 +19,7 @@ import ru.practicum.explorewithme.api.client.event.dto.EventFullDto;
 import ru.practicum.explorewithme.api.client.event.dto.EventShortDto;
 import ru.practicum.explorewithme.event.application.EventService;
 import ru.practicum.explorewithme.event.application.params.PublicEventSearchParams;
-import ru.practicum.explorewithme.stats.client.aop.LogStatsHit;
+import ru.practicum.ewm.stats.client.aop.LogStatsHit;
 
 @RestController
 @RequestMapping("/events")
