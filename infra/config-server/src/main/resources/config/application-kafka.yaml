@@ -1,0 +1,6 @@
+spring:
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    producer:
+      value-serializer: ru.practicum.ewm.stats.common.kafka.AvroSerializer
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer

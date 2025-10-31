@@ -2,5 +2,3 @@ server:
   port: 0
 db:
   name: ewm_request
-stats-server:
-  url: http://stats-server:9090
