@@ -1,7 +1,6 @@
 package ru.practicum.ewm.stats.client;
 
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Component;
 import ru.practicum.ewm.stats.dto.ViewStatsDto;
 
 import java.time.LocalDateTime;
@@ -9,7 +8,6 @@ import java.util.Collections;
 import java.util.List;
 
 @Slf4j
-@Component
 public class StatsClientImpl implements StatsClient {
 
     @Override
