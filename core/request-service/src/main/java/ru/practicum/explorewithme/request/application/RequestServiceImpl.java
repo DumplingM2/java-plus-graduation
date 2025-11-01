@@ -24,6 +24,8 @@ import ru.practicum.explorewithme.request.domain.ParticipationRequest;
 import ru.practicum.explorewithme.request.domain.RequestRepository;
 import ru.practicum.explorewithme.request.domain.RequestStatus;
 import ru.practicum.explorewithme.request.infrastructure.mapper.RequestMapper;
+import ru.practicum.ewm.stats.client.collector.CollectorClient;
+import ru.practicum.ewm.stats.grpc.ActionTypeProto;
 
 @Service
 @RequiredArgsConstructor
@@ -34,12 +36,24 @@ public class RequestServiceImpl implements RequestService {
     private final RequestMapper requestMapper;
     private final EventClient eventClient;
     private final UserClient userClient;
+    private final CollectorClient collectorClient;
 
     @Override
     @Transactional
     public ParticipationRequestDto createRequest(Long userId, Long requestEventId) {
         ParticipationRequest result = checkRequest(userId, requestEventId);
         requestRepository.save(result);
+        
+        // Отправляем информацию о регистрации в Collector при создании заявки
+        try {
+            collectorClient.collectUserAction(userId, requestEventId, ActionTypeProto.ACTION_REGISTER);
+            log.debug("Sent registration action to collector: userId={}, eventId={}", userId, requestEventId);
+        } catch (Exception e) {
+            log.warn("Failed to send registration action to collector: userId={}, eventId={}, error={}",
+                    userId, requestEventId, e.getMessage());
+            // Не прерываем выполнение, если не удалось отправить в Collector
+        }
+        
         return requestMapper.toRequestDto(result);
     }
 

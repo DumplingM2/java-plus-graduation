@@ -35,8 +35,9 @@ import ru.practicum.explorewithme.event.domain.EventRepository;
 import ru.practicum.explorewithme.event.domain.EventState;
 import ru.practicum.explorewithme.event.infrastructure.mapper.EventMapper;
 import ru.practicum.explorewithme.event.infrastructure.mapper.LocationMapper;
-import ru.practicum.ewm.stats.client.StatsClient;
-import ru.practicum.ewm.stats.dto.ViewStatsDto;
+import ru.practicum.ewm.stats.client.analyzer.AnalyzerClient;
+import ru.practicum.ewm.stats.client.collector.CollectorClient;
+import ru.practicum.ewm.stats.grpc.ActionTypeProto;
 
 @Service
 @RequiredArgsConstructor
@@ -50,7 +51,8 @@ public class EventServiceImpl implements EventService {
     private final UserClient userClient;
     private final CategoryRepository categoryRepository;
     private final RequestClient requestClient;
-    private final StatsClient statsClient;
+    private final AnalyzerClient analyzerClient;
+    private final CollectorClient collectorClient;
     private final DtoMapper dtoMapper;
 
     private static final long MIN_HOURS_BEFORE_PUBLICATION_FOR_ADMIN = 1;
@@ -65,10 +67,10 @@ public class EventServiceImpl implements EventService {
             return Collections.emptyList();
         }
 
-        Map<Long, Long> viewsMap = getViewsForEvents(foundEvents);
+        Map<Long, Double> ratingsMap = getRatingsForEvents(foundEvents);
 
         List<EventShortDto> eventDtos = eventMapper.toEventShortDtoList(foundEvents);
-        eventDtos.forEach(dto -> dto.setViews(viewsMap.getOrDefault(dto.getId(), 0L)));
+        eventDtos.forEach(dto -> dto.setRating(ratingsMap.getOrDefault(dto.getId(), 0.0)));
 
         enrichEventsWithConfirmedRequests(eventDtos);
 
@@ -84,8 +86,8 @@ public class EventServiceImpl implements EventService {
                 .collect(Collectors.toList());
         }
 
-        if (params.getSort() != null && params.getSort().equalsIgnoreCase("VIEWS")) {
-            eventDtos.sort(Comparator.comparing(EventShortDto::getViews).reversed());
+        if (params.getSort() != null && params.getSort().equalsIgnoreCase("RATING")) {
+            eventDtos.sort(Comparator.comparing(EventShortDto::getRating, Comparator.nullsLast(Comparator.naturalOrder())).reversed());
         }
 
         log.info("Public search prepared {} DTOs after enrichment and filtering.", eventDtos.size());
@@ -94,24 +96,42 @@ public class EventServiceImpl implements EventService {
 
     @Override
     @Transactional(readOnly = true)
-    public EventFullDto getEventByIdPublic(Long eventId) {
-        log.info("Public: Fetching event id={}", eventId);
+    public EventFullDto getEventByIdPublic(Long eventId, Long userId) {
+        log.info("Public: Fetching event id={}, userId={}", eventId, userId);
 
         Event event = eventRepository.findByIdAndState(eventId, EventState.PUBLISHED)
             .orElseThrow(() -> new EntityNotFoundException(
                 String.format("Event with id=%d not found or is not published.", eventId)));
 
+        // Отправляем информацию о просмотре, если userId передан
+        if (userId != null) {
+            try {
+                collectorClient.collectUserAction(userId, eventId, ActionTypeProto.ACTION_VIEW);
+                log.debug("Sent view action to collector: userId={}, eventId={}", userId, eventId);
+            } catch (Exception e) {
+                log.warn("Failed to send view action to collector: userId={}, eventId={}", userId, eventId, e);
+                // Не прерываем выполнение, если не удалось отправить в collector
+            }
+        }
+
         EventFullDto resultDto = eventMapper.toEventFullDto(event);
 
-        long views = getViewsForEvents(List.of(event)).getOrDefault(eventId, 0L);
-        resultDto.setViews(views);
+        double rating = getRatingsForEvents(List.of(event)).getOrDefault(eventId, 0.0);
+        resultDto.setRating(rating);
 
         enrichEventsWithConfirmedRequests(List.of(resultDto));
 
-        log.info("Public: Found event id={} with title='{}', views={}, confirmedRequests={}",
-            eventId, resultDto.getTitle(), resultDto.getViews(), resultDto.getConfirmedRequests());
+        log.info("Public: Found event id={} with title='{}', rating={}, confirmedRequests={}",
+            eventId, resultDto.getTitle(), resultDto.getRating(), resultDto.getConfirmedRequests());
 
         return resultDto;
+    }
+
+    // Перегруженный метод для обратной совместимости
+    @Override
+    @Transactional(readOnly = true)
+    public EventFullDto getEventByIdPublic(Long eventId) {
+        return getEventByIdPublic(eventId, null);
     }
 
     @Override
@@ -128,8 +148,8 @@ public class EventServiceImpl implements EventService {
 
         List<EventFullDto> result = eventMapper.toEventFullDtoList(foundEvents);
 
-        Map<Long, Long> viewsData = getViewsForEvents(foundEvents);
-        result.forEach(dto -> dto.setViews(viewsData.get(dto.getId())));
+        Map<Long, Double> ratingsData = getRatingsForEvents(foundEvents);
+        result.forEach(dto -> dto.setRating(ratingsData.getOrDefault(dto.getId(), 0.0)));
 
         log.debug("Admin search found {} events", result.size());
         return enrichEventsWithConfirmedRequests(result);
@@ -337,42 +357,29 @@ public class EventServiceImpl implements EventService {
             .orElseThrow(() -> new EntityNotFoundException("Event", "Id", eventId)));
     }
 
-    private Map<Long, Long> getViewsForEvents(List<Event> events) {
+    private Map<Long, Double> getRatingsForEvents(List<Event> events) {
         if (events == null || events.isEmpty()) {
             return Collections.emptyMap();
         }
-        List<String> uris = events.stream()
-            .map(event -> "/events/" + event.getId())
+
+        List<Long> eventIds = events.stream()
+            .map(Event::getId)
             .distinct()
             .collect(Collectors.toList());
 
-        LocalDateTime earliestCreation = events.stream()
-            .map(Event::getCreatedOn)
-            .min(LocalDateTime::compareTo)
-            .orElse(LocalDateTime.of(1970, 1, 1, 0, 0));
-
-        Map<Long, Long> viewsMap = new HashMap<>();
         try {
-            List<ViewStatsDto> stats = statsClient.getStats(
-                earliestCreation,
-                LocalDateTime.now(),
-                uris,
-                true // Уникальные просмотры
-            );
-            if (stats != null) {
-                for (ViewStatsDto stat : stats) {
-                    try {
-                        Long eventId = Long.parseLong(stat.getUri().substring("/events/".length()));
-                        viewsMap.put(eventId, stat.getHits());
-                    } catch (NumberFormatException | IndexOutOfBoundsException e) {
-                        log.warn("Could not parse eventId from URI {} from stats service", stat.getUri());
-                    }
-                }
-            }
+            List<ru.practicum.ewm.stats.grpc.RecommendedEventProto> interactions = 
+                analyzerClient.getInteractionsCount(eventIds);
+            
+            return interactions.stream()
+                .collect(Collectors.toMap(
+                    ru.practicum.ewm.stats.grpc.RecommendedEventProto::getEventId,
+                    ru.practicum.ewm.stats.grpc.RecommendedEventProto::getScore
+                ));
         } catch (Exception e) {
-            log.error("Failed to retrieve views for multiple events. Error: {}", e.getMessage());
+            log.error("Failed to retrieve ratings for events. Error: {}", e.getMessage(), e);
+            return Collections.emptyMap();
         }
-        return viewsMap;
     }
 
     /**
@@ -398,5 +405,74 @@ public class EventServiceImpl implements EventService {
         );
 
         return dtos;
+    }
+
+    /**
+     * Получает список рекомендуемых мероприятий для пользователя
+     *
+     * @param userId идентификатор пользователя
+     * @param size максимальное количество результатов
+     * @return список рекомендованных мероприятий
+     */
+    @Transactional(readOnly = true)
+    public List<EventShortDto> getRecommendations(Long userId, int size) {
+        log.info("Getting recommendations for user id={}, size={}", userId, size);
+
+        try {
+            return analyzerClient.getRecommendationsForUser(userId, size)
+                    .map(recommendedEvent -> {
+                        Event event = eventRepository.findById(recommendedEvent.getEventId())
+                                .orElse(null);
+                        if (event == null || event.getState() != EventState.PUBLISHED) {
+                            return null;
+                        }
+                        EventShortDto dto = eventMapper.toEventShortDto(event);
+                        dto.setRating(recommendedEvent.getScore());
+                        return dto;
+                    })
+                    .filter(java.util.Objects::nonNull)
+                    .collect(Collectors.toList());
+        } catch (Exception e) {
+            log.error("Failed to get recommendations for user id={}: {}", userId, e.getMessage(), e);
+            return Collections.emptyList();
+        }
+    }
+
+    /**
+     * Отправляет информацию о лайке мероприятия пользователем
+     *
+     * @param userId идентификатор пользователя
+     * @param eventId идентификатор мероприятия
+     */
+    public void likeEvent(Long userId, Long eventId) {
+        log.info("User id={} likes event id={}", userId, eventId);
+
+        // Проверяем, что событие существует
+        Event event = eventRepository.findById(eventId)
+                .orElseThrow(() -> new EntityNotFoundException(
+                        String.format("Event with id=%d not found.", eventId)));
+
+        // Проверяем, что пользователь участвовал в мероприятии (имеет подтвержденную заявку)
+        // Используем requestClient для проверки наличия заявок пользователя
+        List<ru.practicum.explorewithme.api.client.request.dto.ParticipationRequestDto> userRequests = 
+                requestClient.getUserRequests(userId);
+        
+        boolean hasConfirmedRequest = userRequests.stream()
+                .anyMatch(req -> req.getEventId() != null && req.getEventId().equals(eventId) && 
+                        req.getStatus() == ru.practicum.explorewithme.api.client.request.enums.RequestStatus.CONFIRMED);
+        
+        if (!hasConfirmedRequest) {
+            throw new BusinessRuleViolationException(
+                    "User can only like events they have participated in.");
+        }
+
+        // Отправляем информацию о лайке в Collector
+        try {
+            collectorClient.collectUserAction(userId, eventId, ActionTypeProto.ACTION_LIKE);
+            log.info("Successfully sent like action: userId={}, eventId={}", userId, eventId);
+        } catch (Exception e) {
+            log.error("Failed to send like action to collector: userId={}, eventId={}", userId, eventId, e);
+            throw e;
+        }
     }
 }

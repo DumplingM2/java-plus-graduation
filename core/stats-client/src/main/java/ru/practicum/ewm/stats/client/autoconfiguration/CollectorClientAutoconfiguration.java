@@ -12,7 +12,11 @@ import ru.practicum.ewm.stats.client.aop.LogStatsHitAspect;
 
 @AutoConfiguration
 @ConditionalOnClass(GrpcClient.class)
-@ComponentScan(basePackages = "ru.practicum.ewm.stats.client.aop")
+@ComponentScan(basePackages = {
+    "ru.practicum.ewm.stats.client.aop",
+    "ru.practicum.ewm.stats.client.collector",
+    "ru.practicum.ewm.stats.client.analyzer"
+})
 public class CollectorClientAutoconfiguration {
     // This autoconfiguration class exists to allow Spring Boot to discover
     // gRPC clients that are annotated with @GrpcClient
