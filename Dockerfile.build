@@ -1,0 +1,37 @@
+FROM maven:3.9-eclipse-temurin-21 AS build
+WORKDIR /app
+COPY pom.xml .
+COPY core/pom.xml core/
+COPY infra/pom.xml infra/
+COPY core/serialization/pom.xml core/serialization/
+COPY core/stats-client/pom.xml core/stats-client/
+COPY core/interaction-api/pom.xml core/interaction-api/
+COPY core/collector/pom.xml core/collector/
+COPY core/aggregator/pom.xml core/aggregator/
+COPY core/analyzer/pom.xml core/analyzer/
+COPY core/event-service/pom.xml core/event-service/
+COPY core/user-service/pom.xml core/user-service/
+COPY core/request-service/pom.xml core/request-service/
+COPY core/comment-service/pom.xml core/comment-service/
+COPY infra/discovery-server/pom.xml infra/discovery-server/
+COPY infra/config-server/pom.xml infra/config-server/
+COPY infra/gateway-server/pom.xml infra/gateway-server/
+
+# Copy source code
+COPY core/serialization core/serialization/
+COPY core/stats-client core/stats-client/
+COPY core/interaction-api core/interaction-api/
+COPY core/collector core/collector/
+COPY core/aggregator core/aggregator/
+COPY core/analyzer core/analyzer/
+COPY core/event-service core/event-service/
+COPY core/user-service core/user-service/
+COPY core/request-service core/request-service/
+COPY core/comment-service core/comment-service/
+COPY infra/discovery-server infra/discovery-server/
+COPY infra/config-server infra/config-server/
+COPY infra/gateway-server infra/gateway-server/
+
+# Build only collector and its dependencies
+RUN mvn clean install -pl core/collector -am -DskipTests
+
