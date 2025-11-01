@@ -10,6 +10,7 @@ import org.springframework.kafka.core.ConsumerFactory;
 import org.springframework.kafka.core.DefaultKafkaConsumerFactory;
 import org.springframework.kafka.listener.ContainerProperties;
 import org.springframework.kafka.support.serializer.ErrorHandlingDeserializer;
+import ru.practicum.ewm.stats.common.kafka.EventSimilarityAvroDeserializer;
 import ru.practicum.ewm.stats.common.kafka.UserActionAvroDeserializer;
 import ru.practicum.ewm.stats.kafka.EventSimilarityAvro;
 import ru.practicum.ewm.stats.kafka.UserActionAvro;
@@ -59,9 +60,9 @@ public class KafkaConfig {
         props.put(ConsumerConfig.GROUP_ID_CONFIG, groupId);
         props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, autoOffsetReset);
         props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
-        props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, ru.practicum.ewm.stats.common.kafka.EventSimilarityAvroDeserializer.class);
+        props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, EventSimilarityAvroDeserializer.class);
         props.put(ErrorHandlingDeserializer.KEY_DESERIALIZER_CLASS, StringDeserializer.class);
-        props.put(ErrorHandlingDeserializer.VALUE_DESERIALIZER_CLASS, ru.practicum.ewm.stats.common.kafka.EventSimilarityAvroDeserializer.class);
+        props.put(ErrorHandlingDeserializer.VALUE_DESERIALIZER_CLASS, EventSimilarityAvroDeserializer.class);
         
         return new DefaultKafkaConsumerFactory<>(props);
     }

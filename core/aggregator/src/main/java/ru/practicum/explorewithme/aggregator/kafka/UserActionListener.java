@@ -65,14 +65,18 @@ public class UserActionListener {
             }
 
             // Рассчитываем и отправляем сходство для всех пар
+            // Отправляем только события со схожестью > 0
             for (Long otherEventId : otherEvents) {
                 double similarity = similarityCalculator.calculateSimilarity(eventId, otherEventId);
                 
-                // Упорядочиваем пару (eventA < eventB)
-                long eventA = Math.min(eventId, otherEventId);
-                long eventB = Math.max(eventId, otherEventId);
-                
-                similarityProducer.sendEventSimilarity(eventA, eventB, similarity, timestamp);
+                // Отправляем только если схожесть > 0 (есть общие пользователи)
+                if (similarity > 0.0) {
+                    // Упорядочиваем пару (eventA < eventB)
+                    long eventA = Math.min(eventId, otherEventId);
+                    long eventB = Math.max(eventId, otherEventId);
+                    
+                    similarityProducer.sendEventSimilarity(eventA, eventB, similarity, timestamp);
+                }
             }
 
             log.debug("Processed user action and calculated similarity for eventId={} with {} other events",
