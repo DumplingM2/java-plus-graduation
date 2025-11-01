@@ -24,7 +24,7 @@ import ru.practicum.explorewithme.request.domain.ParticipationRequest;
 import ru.practicum.explorewithme.request.domain.RequestRepository;
 import ru.practicum.explorewithme.request.domain.RequestStatus;
 import ru.practicum.explorewithme.request.infrastructure.mapper.RequestMapper;
-import ru.practicum.ewm.stats.client.collector.CollectorClient;
+import ru.practicum.ewm.stats.client.CollectorClient;
 import ru.practicum.ewm.stats.grpc.ActionTypeProto;
 
 @Service

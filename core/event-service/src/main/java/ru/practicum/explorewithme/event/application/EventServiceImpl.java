@@ -36,7 +36,7 @@ import ru.practicum.explorewithme.event.domain.EventState;
 import ru.practicum.explorewithme.event.infrastructure.mapper.EventMapper;
 import ru.practicum.explorewithme.event.infrastructure.mapper.LocationMapper;
 import ru.practicum.ewm.stats.client.analyzer.AnalyzerClient;
-import ru.practicum.ewm.stats.client.collector.CollectorClient;
+import ru.practicum.ewm.stats.client.CollectorClient;
 import ru.practicum.ewm.stats.grpc.ActionTypeProto;
 
 @Service

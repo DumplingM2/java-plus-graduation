@@ -14,7 +14,7 @@ import ru.practicum.ewm.stats.client.aop.LogStatsHitAspect;
 @ConditionalOnClass(GrpcClient.class)
 @ComponentScan(basePackages = {
     "ru.practicum.ewm.stats.client.aop",
-    "ru.practicum.ewm.stats.client.collector",
+    "ru.practicum.ewm.stats.client",
     "ru.practicum.ewm.stats.client.analyzer"
 })
 public class CollectorClientAutoconfiguration {
