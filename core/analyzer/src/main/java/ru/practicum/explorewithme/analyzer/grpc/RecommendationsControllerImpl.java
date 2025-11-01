@@ -1,9 +1,9 @@
 package ru.practicum.explorewithme.analyzer.grpc;
 
 import io.grpc.stub.StreamObserver;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import net.devh.boot.grpc.server.service.GrpcService;
+import org.springframework.stereotype.Component;
 import ru.practicum.ewm.stats.grpc.InteractionsCountRequestProto;
 import ru.practicum.ewm.stats.grpc.RecommendationsControllerGrpc;
 import ru.practicum.ewm.stats.grpc.RecommendedEventProto;
@@ -11,8 +11,8 @@ import ru.practicum.ewm.stats.grpc.SimilarEventsRequestProto;
 import ru.practicum.ewm.stats.grpc.UserPredictionsRequestProto;
 
 @GrpcService
+@Component
 @Slf4j
-@RequiredArgsConstructor
 public class RecommendationsControllerImpl extends RecommendationsControllerGrpc.RecommendationsControllerImplBase {
 
     @Override
@@ -50,4 +50,5 @@ public class RecommendationsControllerImpl extends RecommendationsControllerGrpc
         responseObserver.onCompleted();
     }
 }
+
 
