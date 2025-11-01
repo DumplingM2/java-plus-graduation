@@ -27,6 +27,17 @@ public class CollectorClient {
      * @param userId идентификатор пользователя
      * @param eventId идентификатор мероприятия
      * @param actionType тип действия
+     */
+    public void collectUserAction(long userId, long eventId, ActionTypeProto actionType) {
+        collectUserAction(userId, eventId, actionType, Instant.now());
+    }
+
+    /**
+     * Отправляет информацию о действии пользователя в Collector сервис
+     *
+     * @param userId идентификатор пользователя
+     * @param eventId идентификатор мероприятия
+     * @param actionType тип действия
      * @param timestamp временная метка действия
      */
     public void collectUserAction(long userId, long eventId, ActionTypeProto actionType, Instant timestamp) {
