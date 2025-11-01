@@ -25,8 +25,10 @@ public interface UserInteractionRepository extends JpaRepository<UserInteraction
 
     /**
      * Получает суммы максимальных весов для указанных мероприятий
+     * Если maxWeight = 3.0 (LIKE), считаем как 2.5 (REGISTER + 0.5 дополнительно)
+     * Это учитывает, что LIKE после REGISTER добавляет только 0.5 к сумме
      */
-    @Query("SELECT ui.eventId, SUM(ui.maxWeight) FROM UserInteraction ui " +
+    @Query("SELECT ui.eventId, SUM(CASE WHEN ui.maxWeight = 3.0 THEN 2.5 ELSE ui.maxWeight END) FROM UserInteraction ui " +
            "WHERE ui.eventId IN :eventIds GROUP BY ui.eventId")
     List<Object[]> sumMaxWeightsByEventIds(@Param("eventIds") List<Long> eventIds);
 }
