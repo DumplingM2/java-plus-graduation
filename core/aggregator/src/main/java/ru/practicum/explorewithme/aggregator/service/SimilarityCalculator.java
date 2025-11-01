@@ -43,10 +43,10 @@ public class SimilarityCalculator {
     }
 
     /**
-     * Обрабатывает новое действие пользователя и возвращает информацию о том,
-     * изменился ли максимальный вес для данного мероприятия
+     * Обрабатывает новое действие пользователя и возвращает множество eventId пар,
+     * для которых изменилась схожесть (только те, где пользователь участвует в обоих событиях)
      */
-    public boolean processUserAction(UserActionAvro userAction) {
+    public java.util.Set<Long> processUserAction(UserActionAvro userAction) {
         long userId = userAction.getUserId();
         long eventId = userAction.getEventId();
         double newWeight = getActionWeight(userAction.getActionType());
@@ -56,7 +56,7 @@ public class SimilarityCalculator {
 
         // Если вес не изменился или уменьшился, не нужно пересчитывать
         if (currentMaxWeight != null && currentMaxWeight >= newWeight) {
-            return false;
+            return java.util.Collections.emptySet();
         }
 
         // Обновляем максимальный вес пользователя для мероприятия
@@ -68,16 +68,21 @@ public class SimilarityCalculator {
             eventTotalWeights.getOrDefault(eventId, 0.0) - oldWeight + newWeight);
 
         // Обновляем суммы минимальных весов для всех пар с этим мероприятием
-        updateMinWeights(eventId, userId, oldWeight, newWeight);
+        // Возвращаем множество eventId, для которых изменилась схожесть
+        java.util.Set<Long> affectedEvents = updateMinWeights(eventId, userId, oldWeight, newWeight);
 
-        return true;
+        return affectedEvents;
     }
 
     /**
      * Обновляет суммы минимальных весов для всех пар мероприятий,
-     * содержащих указанное мероприятие
+     * содержащих указанное мероприятие.
+     * Возвращает множество eventId, для которых изменилась схожесть
+     * (только те, где пользователь участвует в обоих событиях)
      */
-    private void updateMinWeights(long updatedEventId, long userId, double oldWeight, double newWeight) {
+    private java.util.Set<Long> updateMinWeights(long updatedEventId, long userId, double oldWeight, double newWeight) {
+        java.util.Set<Long> affectedEvents = new java.util.HashSet<>();
+        
         // Проходим по всем мероприятиям
         for (Long otherEventId : eventUserWeights.keySet()) {
             if (otherEventId.equals(updatedEventId)) {
@@ -86,10 +91,13 @@ public class SimilarityCalculator {
 
             Map<Long, Double> otherUserWeights = eventUserWeights.get(otherEventId);
             if (!otherUserWeights.containsKey(userId)) {
-                // Пользователь не взаимодействовал с другим мероприятием
+                // Пользователь не взаимодействовал с другим мероприятием - схожесть не изменилась
                 continue;
             }
 
+            // Пользователь участвует в обоих событиях - схожесть изменилась
+            affectedEvents.add(otherEventId);
+            
             double otherWeight = otherUserWeights.get(userId);
             
             // Упорядочиваем пару по возрастанию eventId
@@ -111,6 +119,8 @@ public class SimilarityCalculator {
                 minWeightsMap.put(second, currentMinSum - oldMin + newMin);
             }
         }
+        
+        return affectedEvents;
     }
 
     /**

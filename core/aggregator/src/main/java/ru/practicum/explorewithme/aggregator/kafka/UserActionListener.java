@@ -40,12 +40,12 @@ public class UserActionListener {
             long eventId = userAction.getEventId();
             Instant timestamp = userAction.getTimestamp();
 
-            // Обрабатываем действие и проверяем, изменился ли вес
-            boolean weightChanged = similarityCalculator.processUserAction(userAction);
+            // Обрабатываем действие и получаем множество eventId, для которых изменилась схожесть
+            java.util.Set<Long> affectedEvents = similarityCalculator.processUserAction(userAction);
 
-            // Если вес не изменился, не нужно пересчитывать сходство
-            if (!weightChanged) {
-                log.debug("Weight did not change for userId={}, eventId={}, skipping similarity recalculation",
+            // Если схожесть не изменилась ни для одной пары, не нужно отправлять события
+            if (affectedEvents.isEmpty()) {
+                log.debug("No similarity changes for userId={}, eventId={}, skipping similarity messages",
                         userAction.getUserId(), eventId);
                 if (acknowledgment != null) {
                     acknowledgment.acknowledge();
@@ -53,20 +53,9 @@ public class UserActionListener {
                 return;
             }
 
-            // Вычисляем сходство со всеми остальными мероприятиями
-            java.util.Set<Long> otherEvents = similarityCalculator.getAllOtherEvents(eventId);
-            
-            if (otherEvents.isEmpty()) {
-                log.debug("No other events found for eventId={}, skipping similarity calculation", eventId);
-                if (acknowledgment != null) {
-                    acknowledgment.acknowledge();
-                }
-                return;
-            }
-
-            // Рассчитываем и отправляем сходство для всех пар
+            // Рассчитываем и отправляем сходство только для пар, где схожесть изменилась
             // Отправляем только события со схожестью > 0
-            for (Long otherEventId : otherEvents) {
+            for (Long otherEventId : affectedEvents) {
                 double similarity = similarityCalculator.calculateSimilarity(eventId, otherEventId);
                 
                 // Отправляем только если схожесть > 0 (есть общие пользователи)
@@ -79,8 +68,8 @@ public class UserActionListener {
                 }
             }
 
-            log.debug("Processed user action and calculated similarity for eventId={} with {} other events",
-                    eventId, otherEvents.size());
+            log.debug("Processed user action and calculated similarity for eventId={} with {} affected events",
+                    eventId, affectedEvents.size());
 
         } catch (Exception e) {
             log.error("Error processing user action: userId={}, eventId={}, error={}",
