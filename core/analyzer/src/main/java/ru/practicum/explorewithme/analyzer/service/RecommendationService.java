@@ -77,19 +77,24 @@ public class RecommendationService {
             return Collections.emptyList();
         }
 
-        List<Long> recentEventIds = recentInteractions.stream()
+        Set<Long> recentEventIds = recentInteractions.stream()
                 .map(UserInteraction::getEventId)
-                .collect(Collectors.toList());
+                .collect(Collectors.toSet());
 
         // 2. Находим мероприятия, похожие на просмотренные, но с которыми пользователь не взаимодействовал
+        // Загружаем все сходства одним запросом вместо запросов в цикле
+        List<EventSimilarity> allSimilarities = similarityRepository.findByEventIds(new ArrayList<>(recentEventIds));
+        
         Set<Long> candidateEventIds = new HashSet<>();
-        for (Long recentEventId : recentEventIds) {
-            List<EventSimilarity> similarities = similarityRepository.findByEventId(recentEventId);
-            for (EventSimilarity sim : similarities) {
-                long otherEventId = sim.getEventA().equals(recentEventId) ? sim.getEventB() : sim.getEventA();
-                if (!recentEventIds.contains(otherEventId)) {
-                    candidateEventIds.add(otherEventId);
-                }
+        for (EventSimilarity sim : allSimilarities) {
+            long eventA = sim.getEventA();
+            long eventB = sim.getEventB();
+            
+            // Определяем, какой из eventId является недавно просмотренным, а какой - кандидатом
+            if (recentEventIds.contains(eventA) && !recentEventIds.contains(eventB)) {
+                candidateEventIds.add(eventB);
+            } else if (recentEventIds.contains(eventB) && !recentEventIds.contains(eventA)) {
+                candidateEventIds.add(eventA);
             }
         }
 
@@ -98,14 +103,43 @@ public class RecommendationService {
             return Collections.emptyList();
         }
 
-        // 3. Получаем все сходства для кандидатов
+        // 3. Получаем все сходства для кандидатов одним запросом
+        List<Long> userEventIds = recentInteractions.stream()
+                .map(UserInteraction::getEventId)
+                .collect(Collectors.toList());
+        
+        // Загружаем все сходства между кандидатами и событиями пользователя одним запросом
+        List<EventSimilarity> candidateSimilarities = similarityRepository.findByCandidateEventsAndUserEvents(
+                new ArrayList<>(candidateEventIds), userEventIds);
+        
+        // Группируем сходства по candidateEventId
+        Map<Long, List<EventSimilarity>> similaritiesByCandidate = candidateSimilarities.stream()
+                .collect(Collectors.groupingBy(sim -> {
+                    if (candidateEventIds.contains(sim.getEventA())) {
+                        return sim.getEventA();
+                    } else {
+                        return sim.getEventB();
+                    }
+                }));
+        
+        // Создаем карту оценок пользователя для быстрого доступа
+        Map<Long, Double> userRatings = recentInteractions.stream()
+                .collect(Collectors.toMap(
+                        UserInteraction::getEventId,
+                        UserInteraction::getMaxWeight
+                ));
+        
+        // 4. Вычисляем предсказанные оценки для каждого кандидата
         Map<Long, Double> eventScores = new HashMap<>();
         for (Long candidateEventId : candidateEventIds) {
-            double predictedScore = calculatePredictedScore(userId, candidateEventId, recentInteractions);
+            double predictedScore = calculatePredictedScoreInMemory(
+                    candidateEventId, 
+                    similaritiesByCandidate.getOrDefault(candidateEventId, Collections.emptyList()),
+                    userRatings);
             eventScores.put(candidateEventId, predictedScore);
         }
 
-        // 4. Сортируем по предсказанной оценке и выбираем топ-N
+        // 5. Сортируем по предсказанной оценке и выбираем топ-N
         return eventScores.entrySet().stream()
                 .sorted(Map.Entry.<Long, Double>comparingByValue().reversed())
                 .limit(maxResults)
@@ -121,18 +155,12 @@ public class RecommendationService {
     }
 
     /**
-     * Вычисляет предсказанную оценку мероприятия на основе K ближайших соседей
+     * Вычисляет предсказанную оценку мероприятия на основе K ближайших соседей (в памяти, без запросов к БД)
      */
-    private double calculatePredictedScore(long userId, long candidateEventId, List<UserInteraction> userInteractions) {
-        // 1. Находим K ближайших соседей (максимально похожие мероприятия, с которыми пользователь взаимодействовал)
-        List<Long> userEventIds = userInteractions.stream()
-                .map(UserInteraction::getEventId)
-                .collect(Collectors.toList());
-
-        List<EventSimilarity> similarities = similarityRepository.findByEventIdAndOthers(
-                candidateEventId, userEventIds);
-
-        // Берем K ближайших
+    private double calculatePredictedScoreInMemory(long candidateEventId, 
+                                                    List<EventSimilarity> similarities,
+                                                    Map<Long, Double> userRatings) {
+        // Берем K ближайших соседей
         List<EventSimilarity> kNearest = similarities.stream()
                 .sorted(Comparator.comparing(EventSimilarity::getScore).reversed())
                 .limit(DEFAULT_K_NEIGHBORS)
@@ -142,13 +170,7 @@ public class RecommendationService {
             return 0.0;
         }
 
-        // 2. Получаем оценки пользователя для K ближайших
-        Map<Long, Double> userRatings = new HashMap<>();
-        for (UserInteraction interaction : userInteractions) {
-            userRatings.put(interaction.getEventId(), interaction.getMaxWeight());
-        }
-
-        // 3. Вычисляем сумму взвешенных оценок и сумму коэффициентов
+        // Вычисляем сумму взвешенных оценок и сумму коэффициентов
         double weightedSum = 0.0;
         double similaritySum = 0.0;
 
@@ -162,7 +184,7 @@ public class RecommendationService {
             }
         }
 
-        // 4. Вычисляем предсказанную оценку
+        // Вычисляем предсказанную оценку
         if (similaritySum == 0.0) {
             return 0.0;
         }

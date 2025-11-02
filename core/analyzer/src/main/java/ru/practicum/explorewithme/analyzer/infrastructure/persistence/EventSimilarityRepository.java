@@ -35,5 +35,24 @@ public interface EventSimilarityRepository extends JpaRepository<EventSimilarity
            "ORDER BY es.score DESC")
     List<EventSimilarity> findByEventIdAndOthers(@Param("eventId") Long eventId, 
                                                   @Param("otherEventIds") List<Long> otherEventIds);
+
+    /**
+     * Находит все коэффициенты сходства для списка мероприятий
+     * (где мероприятие является либо eventA, либо eventB)
+     */
+    @Query("SELECT es FROM EventSimilarity es WHERE es.eventA IN :eventIds OR es.eventB IN :eventIds " +
+           "ORDER BY es.score DESC")
+    List<EventSimilarity> findByEventIds(@Param("eventIds") List<Long> eventIds);
+
+    /**
+     * Находит все коэффициенты сходства между списками мероприятий
+     * (где одно мероприятие из candidateEventIds, а другое из userEventIds)
+     */
+    @Query("SELECT es FROM EventSimilarity es WHERE " +
+           "(es.eventA IN :candidateEventIds AND es.eventB IN :userEventIds) OR " +
+           "(es.eventB IN :candidateEventIds AND es.eventA IN :userEventIds) " +
+           "ORDER BY es.score DESC")
+    List<EventSimilarity> findByCandidateEventsAndUserEvents(@Param("candidateEventIds") List<Long> candidateEventIds,
+                                                              @Param("userEventIds") List<Long> userEventIds);
 }
 
