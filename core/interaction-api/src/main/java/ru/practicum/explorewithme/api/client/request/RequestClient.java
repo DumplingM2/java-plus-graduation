@@ -1,10 +1,13 @@
 package ru.practicum.explorewithme.api.client.request;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestParam;
+import ru.practicum.explorewithme.api.client.request.dto.ParticipationRequestDto;
 
 @FeignClient(name = "request-service", path = "/internal/requests", configuration = RequestClientConfiguration.class)
 public interface RequestClient {
@@ -16,4 +19,12 @@ public interface RequestClient {
      */
     @GetMapping("/confirmed-counts")
     Map<Long, Long> getConfirmedRequestCounts(@RequestParam("eventIds") Set<Long> eventIds);
+
+    /**
+     * Fetches all requests for a given user.
+     * @param userId The user ID.
+     * @return List of participation requests for the user.
+     */
+    @GetMapping("/users/{userId}")
+    List<ParticipationRequestDto> getUserRequests(@PathVariable("userId") Long userId);
 }

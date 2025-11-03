@@ -10,6 +10,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -19,7 +20,7 @@ import ru.practicum.explorewithme.api.client.event.dto.EventFullDto;
 import ru.practicum.explorewithme.api.client.event.dto.EventShortDto;
 import ru.practicum.explorewithme.event.application.EventService;
 import ru.practicum.explorewithme.event.application.params.PublicEventSearchParams;
-import ru.practicum.explorewithme.stats.client.aop.LogStatsHit;
+import ru.practicum.ewm.stats.client.aop.LogStatsHit;
 
 @RestController
 @RequestMapping("/events")
@@ -32,7 +33,6 @@ public class PublicEventController {
 
     @GetMapping
     @ResponseStatus(HttpStatus.OK)
-    @LogStatsHit
     public List<EventShortDto> getEvents(
             @Valid PublicEventSearchParams params,
             @RequestParam(name = "from", defaultValue = "0") @PositiveOrZero int from,
@@ -52,13 +52,36 @@ public class PublicEventController {
 
     @GetMapping("/{eventId}")
     @ResponseStatus(HttpStatus.OK)
-    @LogStatsHit
     public EventFullDto getEventById(
             @PathVariable @Positive Long eventId,
+            @RequestHeader(name = "X-EWM-USER-ID", required = false) Long userId,
             @RequestHeader(name = "X-Real-IP", required = false) String ipAddress) {
-        log.info("Public: Received request to get event with id={}", eventId);
-        EventFullDto event = eventService.getEventByIdPublic(eventId);
+        log.info("Public: Received request to get event with id={}, userId={}", eventId, userId);
+        EventFullDto event = eventService.getEventByIdPublic(eventId, userId);
         log.info("Public: Found event: {}", event);
         return event;
+    }
+
+    @GetMapping("/recommendations")
+    @ResponseStatus(HttpStatus.OK)
+    public List<EventShortDto> getRecommendations(
+            @RequestHeader(name = "X-EWM-USER-ID") @Positive Long userId,
+            @RequestParam(name = "from", defaultValue = "0") @PositiveOrZero int from,
+            @RequestParam(name = "size", defaultValue = "10") @Positive int size) {
+        log.info("Public: Received request to get recommendations for user id={}, from={}, size={}",
+                userId, from, size);
+        List<EventShortDto> recommendations = eventService.getRecommendations(userId, size);
+        log.info("Public: Found {} recommendations for user id={}", recommendations.size(), userId);
+        return recommendations;
+    }
+
+    @PutMapping("/{eventId}/like")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void likeEvent(
+            @PathVariable @Positive Long eventId,
+            @RequestHeader(name = "X-EWM-USER-ID") @Positive Long userId) {
+        log.info("Public: Received request to like event id={} by user id={}", eventId, userId);
+        eventService.likeEvent(userId, eventId);
+        log.info("Public: Successfully processed like for event id={} by user id={}", eventId, userId);
     }
 }
